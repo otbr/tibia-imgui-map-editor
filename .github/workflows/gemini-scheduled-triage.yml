@@ -88,6 +88,15 @@ jobs:
           ISSUE_COUNT="$(echo "${ISSUES}" | jq 'length')"
           echo "✅ Found ${ISSUE_COUNT} issue(s) to triage! 🎯"
 
+      - name: 'Write OAuth credentials'
+        env:
+          GOOGLE_OAUTH: ${{ secrets.GOOGLE_OAUTH }}
+        run: |
+          if [ -n "$GOOGLE_OAUTH" ]; then
+            mkdir -p ~/.gemini
+            echo "$GOOGLE_OAUTH" > ~/.gemini/oauth_creds.json
+          fi
+
       - name: 'Run Gemini Issue Analysis'
         id: 'gemini_issue_analysis'
         if: |-
