@@ -48,6 +48,7 @@ jobs:
           if [ -n "$GOOGLE_OAUTH" ]; then
             mkdir -p ~/.gemini
             echo "$GOOGLE_OAUTH" > ~/.gemini/oauth_creds.json
+            echo '{"security": {"auth": {"selectedType": "oauth-personal"}}}' > ~/.gemini/settings.json
           fi
 
       - name: 'Run Gemini pull request review'
