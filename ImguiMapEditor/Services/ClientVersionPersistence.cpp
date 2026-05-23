@@ -78,7 +78,11 @@ ClientVersionPersistence::loadFromJson(const std::filesystem::path &path) {
 
     if (client.contains("otbmVersions") && client["otbmVersions"].is_array() &&
         !client["otbmVersions"].empty()) {
-      version.setOtbmVersion(client["otbmVersions"][0].get<uint32_t>());
+      std::vector<uint32_t> otbm_versions;
+      for (const auto &ver : client["otbmVersions"]) {
+        otbm_versions.push_back(ver.get<uint32_t>());
+      }
+      version.setMapVersionsSupported(otbm_versions);
     }
 
     std::string data_dir = client.value("dataDirectory", "");
@@ -86,6 +90,13 @@ ClientVersionPersistence::loadFromJson(const std::filesystem::path &path) {
     version.setDescription(description);
     version.setVisible(true);
     version.setDefault(is_default);
+
+    version.setMetadataFile(client.value("metadataFile", "Tibia.dat"));
+    version.setSpritesFile(client.value("spritesFile", "Tibia.spr"));
+    version.setTransparent(client.value("transparency", false));
+    version.setExtended(client.value("extended", false));
+    version.setFrameDurations(client.value("frameDurations", false));
+    version.setFrameGroups(client.value("frameGroups", false));
 
     if (is_default) {
       result.default_version = version_number;
@@ -127,9 +138,17 @@ bool ClientVersionPersistence::saveToJson(const std::filesystem::path &path,
     entry["datSignature"] = dat_ss.str();
     entry["sprSignature"] = spr_ss.str();
 
-    if (client.getOtbmVersion() > 0) {
-      entry["otbmVersions"] = nlohmann::json::array({client.getOtbmVersion()});
+    const auto &otbm_versions = client.getMapVersionsSupported();
+    if (!otbm_versions.empty()) {
+      entry["otbmVersions"] = otbm_versions;
     }
+
+    entry["metadataFile"] = client.getMetadataFile();
+    entry["spritesFile"] = client.getSpritesFile();
+    entry["transparency"] = client.isTransparent();
+    entry["extended"] = client.isExtended();
+    entry["frameDurations"] = client.hasFrameDurations();
+    entry["frameGroups"] = client.hasFrameGroups();
 
     if (client.isDefault()) {
       entry["default"] = true;

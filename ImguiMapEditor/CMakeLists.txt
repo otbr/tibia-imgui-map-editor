@@ -190,6 +190,7 @@ set(SERVICES_SOURCES
     Services/ClientVersionRegistry.cpp
     Services/ClientVersionPersistence.cpp
     Services/ClientSignatureDetector.cpp
+    Services/ClientAssetDetector.cpp
     Services/ClientDataService.cpp
     Services/SpriteManager.cpp
     Services/SpriteAsyncLoader.cpp
@@ -233,9 +234,7 @@ set(SERVICES_SOURCES
 set(UI_SOURCES
     UI/Dialogs/AdvancedSearchDialog.cpp
     UI/Dialogs/ClientConfiguration/ClientConfigurationDialog.cpp
-    UI/Dialogs/ClientConfiguration/ClientDetailsCard.cpp
-    UI/Dialogs/ClientConfiguration/ClientEditModal.cpp
-    UI/Dialogs/ClientConfiguration/ClientTableWidget.cpp
+    UI/Dialogs/ClientConfiguration/ClientPropertyEditor.cpp
     UI/Dialogs/ConfirmationDialog.cpp
     UI/Dialogs/EditTownsDialog.cpp
     UI/Dialogs/Import/ImportMapDialog.cpp

@@ -1,318 +1,209 @@
 # C++ Project Guidelines - Architecture & Style
 
-## 🚫 CRITICAL RULES - NEVER VIOLATE
+<critical_rules>
 
-### 1. ABSOLUTELY NO CODE IN APPLICATION.CPP
-- **APPLICATION.CPP IS OFF-LIMITS** for new implementations
-- Application.cpp is ONLY for application initialization and main loop coordination
-- If you're about to add business logic to Application.cpp → STOP and create a proper module
+## NO CODE IN APPLICATION.CPP
+- Application.cpp is ONLY for initialization and main loop wiring
+- If you're about to add business logic there — STOP and create a proper module
 
-### 2. SEARCH BEFORE YOU CODE - MANDATORY
+## SEARCH BEFORE YOU CODE
 Before writing ANY new function, class, or logic block:
+1. Search the codebase for similar functionality
+2. Check if this logic already exists (even partially)
+3. Look for utility functions that do related tasks
+4. Verify no duplicate implementations exist
 
-```
-☐ Search the codebase for similar functionality
-☐ Check if this logic already exists (even partially)
-☐ Look for utility functions that do related tasks
-☐ Check common utility headers (utils/, helpers/, common/)
-☐ Verify no duplicate implementations exist
-```
+IF SIMILAR CODE EXISTS — REUSE IT, DON'T DUPLICATE IT
 
-**IF SIMILAR CODE EXISTS → REUSE IT, DON'T DUPLICATE IT**
+## NO DUPLICATE CODE
+- If you find yourself copying logic, create a shared function instead
+- If similar patterns exist in 2+ places, refactor to shared utility
+- DRY is NOT optional
 
-### 3. NO DUPLICATE CODE - ZERO TOLERANCE
-- If you find yourself copying logic → create a shared function instead
-- If similar patterns exist in 2+ places → refactor to shared utility
-- DRY (Don't Repeat Yourself) is NOT optional
+## SIZE LIMITS
+- Function exceeds 150 lines → refactor
+- File exceeds 500 lines → split
 
----
-
-## 📋 PRE-IMPLEMENTATION CHECKLIST
-
-### Before Adding ANY New Code:
-
-#### Step 1: Research Phase (MANDATORY)
-```
-☐ What am I trying to implement?
-☐ Does this functionality already exist? (grep/search the codebase)
-☐ Is there a similar pattern I can follow?
-☐ Which module/file SHOULD own this logic?
-☐ Have I checked all relevant headers?
-```
-
-#### Step 2: Architecture Decision
-```
-☐ Which existing module does this belong to?
-☐ If no module exists, do I need a new one?
-☐ Is this a utility function? → goes in utils/ or common/
-☐ Is this business logic? → goes in appropriate domain module
-☐ Is this UI code? → goes in ui/ or views/
-☐ Is this data handling? → goes in models/ or data/
-```
-
-#### Step 3: File Placement Rules
-```
-☐ New class/feature → new .cpp/.h pair in correct module
-☐ Utility function → existing or new utility file
-☐ Data structure → models/ or types/
-☐ Never default to Application.cpp
-```
+</critical_rules>
 
 ---
 
-## 🏗️ CODE ORGANIZATION & ARCHITECTURE
+<architecture>
 
-### Key Principles
-
-#### RAII is Law
+<raii>
 - Never manage `GLuint` handles manually
 - Every OpenGL object (VAO, VBO, Shader, Texture) must be wrapped in a class that handles `glDelete*` in its destructor
+- No raw `new`/`delete` for GL resources
+</raii>
 
-#### Clear Ownership
+<ownership>
 - Use `std::unique_ptr` for sole ownership
-- Use `std::shared_ptr` *only* when ownership is truly shared (e.g., a Texture asset used by multiple Sprites)
-- Use raw pointers (`T*`) or references (`T&`) only as non-owning observers
+- Use `std::shared_ptr` only when ownership is truly shared (e.g., a Texture asset used by multiple renderers)
+- Use raw pointers (`T*`) or references (`T&`) only as non-owning observers — never to manage lifetime
+</ownership>
 
-#### Const-Correctness
+<const_correctness>
 - Aggressively mark methods `const` if they do not modify internal state
+- Prefer `const&` for input parameters of non-trivial types
+</const_correctness>
 
-#### Architecture Layering
-- Dependencies flow downwards: `UI Layer` (ImGui) → `App/Core` → `Rendering` → `Platform/GL`
-- **Never** leak ImGui code into the Core or Rendering layers
+<layering>
+- Dependencies flow downwards only: UI → Controllers → Core → Services → Domain → I/O → Platform
+- Never leak ImGui code into Core, Services, or Rendering layers
+- Never let Domain or Rendering know about UI
+- Prefer simple structs and free functions over deep class hierarchies until complexity demands otherwise
+</layering>
 
-#### No Global State
-- Avoid singletons or global variables
-- Pass dependencies (like Window or Renderer) explicitly via constructor injection
+<no_global_state>
+- No singletons, no global variables
+- Pass dependencies explicitly via constructor injection
+- If you need something everywhere, it belongs in a service injected at construction — not a global
+</no_global_state>
 
-### File Structure Guidelines
+<single_responsibility>
+- Each class owns one concept
+- Each module has a clear, single responsibility with its own `.cpp`/`.h` pair
+- No logic bleeding across layer boundaries
+</single_responsibility>
 
-#### ✅ CORRECT Module Organization:
-```
-src/
-├── application.cpp          # ONLY app init + main loop
-├── modules/
-│   ├── feature_name/
-│   │   ├── feature_manager.cpp
-│   │   ├── feature_manager.h
-│   │   └── feature_utils.cpp
-├── utils/
-│   ├── string_utils.cpp
-│   ├── file_utils.cpp
-│   └── math_utils.cpp
-├── models/
-│   └── data_models.cpp
-└── ui/
-    └── views.cpp
-```
-
-#### ❌ WRONG (Never Do This):
-```
-src/
-└── application.cpp          # 5000 lines of everything
-```
-
-### Module Ownership Rules
-
-Each module should have:
-```
-☐ Clear, single responsibility
-☐ Its own .cpp/.h pair
-☐ Related utilities grouped together
-☐ No logic bleeding into Application.cpp
-```
+</architecture>
 
 ---
 
-## 📁 FILE ORGANIZATION
+<workflow>
 
-### File Structure
-- **One Class Per File:** Unless classes are tightly coupled small helpers
-- **Header Extensions:** `.hpp` for headers, `.cpp` for implementation
-- **Include Guards:** Use `#pragma once`
-- **Forward Declarations:** Use them liberally in headers to reduce compile times and avoid circular dependencies
+Before writing any code:
+1. UNDERSTAND the requirement fully
+2. SEARCH for existing implementations (`grep -r 'thing' src/`)
+3. DECIDE which existing module owns this — check README for module map
+4. CHECK if a new file is needed or if an existing one should be extended
+5. IMPLEMENT in the right place
+6. VERIFY no duplication was introduced
+7. UPDATE relevant headers
+
+If similar code found:
+- Can I use it directly? → Use it
+- Can I extend it? → Extend it, don't duplicate
+- Is it in the wrong place? → Refactor once, then use it
+- Is it slightly different? → Parameterize to handle both cases
+
+</workflow>
+
+---
+
+<file_organization>
+
+- One class per file, unless classes are tightly coupled small helpers
+- Headers: `.hpp`, implementations: `.cpp`
+- Always use `#pragma once`
+- Use forward declarations liberally in headers to reduce compile times and avoid circular dependencies
 
 ### Include Order
-1. Precompiled Header (if applicable)
+1. Precompiled header (if applicable)
 2. Corresponding `.hpp` file
 3. C++ Standard Library (`<vector>`, `<algorithm>`, `<format>`)
-4. Third-party Libs (`<glad/glad.h>`, `<imgui.h>`, `<glm/glm.hpp>`)
-5. Project Headers (`"core/Log.hpp"`)
+4. Third-party libs (`<glad/glad.h>`, `<imgui.h>`, `<glm/glm.hpp>`)
+5. Project headers (`"core/Log.hpp"`)
+
+</file_organization>
 
 ---
 
-## 🔍 CODE REUSE CHECKLIST
+<modern_cpp>
 
-### Before Writing a Function:
-
-```
-1. ☐ Search codebase: "grep -r 'similar_functionality' src/" or use "desktop commander MCP"
-2. ☐ Check existing utility files
-3. ☐ Look for similar patterns in related modules
-4. ☐ Review recent commits for related work
-5. ☐ Ask: "Would this be useful elsewhere?" → Make it reusable
-```
-
-### If Similar Code Found:
-```
-☐ Can I use it directly? → Use it
-☐ Can I extend it? → Extend it, don't duplicate
-☐ Is it in wrong place? → Refactor ONCE, then use it
-☐ Is it slightly different? → Parameterize it to handle both cases
-```
-
----
-
-## 💻 MODERN C++ (C++20/26) GUIDELINES
-
-### Type Deduction & Pointers
-- **Use `auto`:** For iterators, complex template types, or when the type is obvious from the RHS (e.g., `auto* t = new Texture();`)
-- **Numeric Types:** Be explicit. Use `int32_t`, `uint64_t`, `size_t`, `float`. Avoid generic `int` or `unsigned` in binary file structures
-- **Nullptr:** Always use `nullptr`, never `NULL` or `0`
-
-### Line Length
-- **Maximum line length:** 120 characters
-- C++ templates, namespaces, and verbose OpenGL calls require more horizontal space
+### Types & Pointers
+- Use `auto` for iterators and complex template types, or when the type is obvious from the RHS
+- Be explicit with numeric types: use `int32_t`, `uint64_t`, `size_t`, `float` — avoid bare `int` or `unsigned` in data structures
+- Always use `nullptr`, never `NULL` or `0`
 
 ### Containers & Views
-- **`std::span`:** Use `std::span<T>` instead of passing pointer + size pairs
-  - *Example:* `void UploadData(std::span<const uint8_t> data);`
-- **`std::string_view`:** Use for read-only string arguments to avoid allocations
+- Use `std::span<T>` instead of pointer + size pairs: `void Upload(std::span<const uint8_t> data);`
+- Use `std::string_view` for read-only string arguments to avoid allocations
 
 ### Concepts
-- **Use Concepts:** Prefer C++20 `requires` clauses over SFINAE or raw templates for math/grid logic
+- Prefer C++20 `requires` clauses over SFINAE for constrained templates:
   ```cpp
   template<typename T>
   requires std::integral<T>
   void SnapToGrid(T& value, T gridSize);
   ```
 
+</modern_cpp>
+
 ---
 
-## 🎮 GRAPHICS & UI SPECIFICS
+<graphics_and_ui>
 
-### OpenGL (Glad/GLFW)
-- **Math:** Use `glm`. Pass `glm::vec3` by value, `glm::mat4` by `const&`
-- **State Machine:** Do not make redundant GL calls. Cache state if necessary, but prefer a "Stateless Renderer" abstraction that sorts draw calls
-- **Buffers:** Use `std::vector` to build vertex data, then upload to GPU via `glBufferData`
+### OpenGL
+- All GL calls must happen on the main thread — no exceptions
+- Use `glm` for all math. Pass `glm::vec2`/`glm::vec3` by value, `glm::mat4` by `const&`
+- Do not make redundant GL state changes — cache state or use a stateless renderer abstraction that sorts draw calls
+- Build vertex data in `std::vector`, upload to GPU via `glBufferData` — never build on the GPU side directly
+- Check GL errors in debug builds: wrap calls with error checking in non-release configurations
+- Every shader must be compiled, linked, and validated at startup — fail loudly, not silently
+
+### RAII for GL Objects
+```cpp
+// Correct — destructor calls glDeleteVertexArrays
+class VertexArray {
+public:
+    VertexArray()  { glGenVertexArrays(1, &id_); }
+    ~VertexArray() { glDeleteVertexArrays(1, &id_); }
+    VertexArray(const VertexArray&) = delete;
+    VertexArray& operator=(const VertexArray&) = delete;
+private:
+    GLuint id_ = 0;
+};
+```
+
+### Render Passes
+- Each render pass has a single responsibility — terrain, lighting, overlays are separate passes
+- Passes must not reach into domain data directly — receive only what they need via parameters or a render context struct
+- New overlays implement `IOverlayRenderer` and register via `OverlayManager`, not hardcoded into the pipeline
 
 ### Dear ImGui
-- **ID Stack:** In loops (like drawing a grid of tiles), **always** use `ImGui::PushID(index)` and `ImGui::PopID()`
-- **Strings:** Use `const char*` literals where possible. Use `std::format` (C++20) for dynamic labels
-  - *Good:* `ImGui::Text("Pos: %d, %d", x, y);` (ImGui internal formatting)
-  - *Good:* `ImGui::TextUnformatted(std::format("Count: {}", count).c_str());`
+- In loops, always use `ImGui::PushID(index)` / `ImGui::PopID()` — never skip this
+- Use `const char*` literals where possible; `std::format` for dynamic labels
+  - Good: `ImGui::Text("Pos: %d, %d", x, y);`
+  - Good: `ImGui::TextUnformatted(std::format("Count: {}", count).c_str());`
+- UI panels never talk to Domain directly — always go through a Service or Controller
+- Never put ImGui calls inside Rendering or Domain layer code
+
+</graphics_and_ui>
 
 ---
 
-## 📝 DOCUMENTATION & COMMENTS
+<error_handling>
 
-- **Doxygen Style:** Use `/*` for comment blocks and `/*` for API documentation.
-- **Public Interface:** Document all public methods in the `.hpp` file
-- **Implementation:** Comment complex algorithms (e.g., auto-tiling logic) inside the `.cpp`
-- **TODOs:** format as `// TODO(User): Description`
+- No silent failures — if something can't be initialized, throw or assert loudly at startup
+- GL errors: use a debug callback (`glDebugMessageCallback`) in debug builds; do not poll `glGetError()` in hot paths
+- File I/O failures must surface as descriptive errors, not empty/corrupt state
+- Avoid bare `catch(...)` — catch specific types and handle or rethrow
+- Do not use exceptions for control flow — only for genuinely exceptional conditions
+- Failed resource loads (shaders, textures) must leave the object in a well-defined invalid state, not half-initialized
 
----
-
-## 🎯 IMPLEMENTATION WORKFLOW
-
-### The Correct Process:
-
-```
-1. UNDERSTAND the requirement
-   ↓
-2. SEARCH for existing implementations
-   ↓
-3. DECIDE on correct module/file location
-   ↓
-4. CHECK if new file is needed
-   ↓
-5. IMPLEMENT in the RIGHT place
-   ↓
-6. VERIFY no duplication created
-   ↓
-7. UPDATE relevant headers
-```
-
-### Questions to Ask BEFORE Coding:
-
-```
-☐ "Where does this logically belong?"
-☐ "Does anything similar exist?"
-☐ "Am I creating a new responsibility that needs a new module?"
-☐ "Will this be used by multiple parts of the codebase?"
-☐ "Am I following the existing architecture patterns?"
-```
+</error_handling>
 
 ---
 
-## 🚨 RED FLAGS - STOP IF YOU SEE THESE
+<threading>
 
-### Immediate Stop Signals:
+- All OpenGL calls: main thread only, no exceptions
+- All ImGui calls: main thread only
+- Background threads are permitted only for: asset loading, file I/O, compression
+- Shared data between threads must be protected — use `std::mutex` or atomics; document the lock ownership clearly
+- Never pass raw GL handles (VAO, VBO, texture IDs) to background threads
+- Background thread results must be handed back to main thread before any GL upload occurs
 
-```
-❌ "I'll just add this to Application.cpp"
-❌ "This is similar to X, but I'll write it from scratch"
-❌ "I'll copy this function and modify it slightly"
-❌ "I'll put everything in one file for now"
-❌ "I don't know where this goes, so Application.cpp"
-```
-
----
-
-## 🔄 REFACTORING TRIGGER POINTS
-
-Refactor immediately when:
-
-```
-☐ Same logic appears in 2+ places
-☐ Function exceeds 50 lines
-☐ File exceeds 500 lines
-☐ Application.cpp gains ANY business logic
-☐ You copy-paste ANY code
-```
+</threading>
 
 ---
 
-## ✅ VALIDATION CHECKLIST
+<documentation>
 
-Before submitting ANY code:
+- Doxygen style for all public API in `.hpp` files
+- Comment complex algorithms inline in `.cpp` — explain *why*, not *what*
+- TODOs: `// TODO(Name): Description`
+- Do not leave commented-out code in PRs — delete it or track it as a TODO
 
-```
-☐ No duplicate code exists
-☐ Nothing added to Application.cpp except wiring
-☐ Code is in logically correct module
-☐ Existing utilities were checked and reused
-☐ New code follows existing patterns
-☐ Headers are properly organized
-☐ No monolithic functions (>50 lines)
-☐ RAII principles followed for all OpenGL objects
-☐ Proper ownership semantics (unique_ptr/shared_ptr/raw pointers)
-☐ Const-correctness maintained
-☐ No global state introduced
-```
-
----
-
-## 🎓 REMEMBER
-
-1. **Application.cpp is NOT a dumping ground**
-2. **Search BEFORE you code**
-3. **Reuse ALWAYS beats rewrite**
-4. **Organization prevents technical debt**
-5. **RAII is law for OpenGL objects**
-6. **Clear ownership prevents memory leaks**
-7. **Const-correctness catches bugs early**
-8. **Your future self will thank you**
-
----
-
-## 🔧 QUICK REFERENCE
-
-**Before writing ANY code, ask:**
-- Does this already exist?
-- Where should this live?
-- Am I about to duplicate something?
-- Is Application.cpp the right place? (Answer: NO)
-- Does this OpenGL object have RAII wrapper?
-- Is ownership clear (unique_ptr/shared_ptr/raw pointer)?
-
-**The mantra:** SEARCH → REUSE → ORGANIZE → IMPLEMENT
+</documentation>

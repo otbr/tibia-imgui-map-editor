@@ -32,3 +32,5 @@ RME_Readonly
 
 .gemini/
 gha-creds-*.json
+/build-ninja
+compile_commands.json

@@ -245,5 +245,20 @@ bool ClientVersionRegistry::removeClient(uint32_t version_number) {
   return true;
 }
 
+void ClientVersionRegistry::backupVersion(uint32_t version_number) {
+  auto it = versions_.find(version_number);
+  if (it != versions_.end()) {
+    it->second.backup();
+  }
+}
+
+void ClientVersionRegistry::restoreVersion(uint32_t version_number) {
+  auto it = versions_.find(version_number);
+  if (it != versions_.end()) {
+    it->second.restore();
+    it->second.clearDirty();
+  }
+}
+
 } // namespace Services
 } // namespace MapEditor

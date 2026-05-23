@@ -1,63 +1,71 @@
 #pragma once
-#include "UI/Dialogs/ClientConfiguration/ClientDetailsCard.h"
-#include "UI/Dialogs/ClientConfiguration/ClientEditModal.h"
-#include "UI/Dialogs/ClientConfiguration/ClientTableWidget.h"
-#include "UI/DTOs/ClientEditData.h"
-#include <filesystem>
-#include <functional>
-#include <imgui.h>
+
+#include "Domain/ClientVersion.h"
+#include <cstdint>
 #include <string>
+#include <unordered_set>
+#include <vector>
 
 namespace MapEditor {
 namespace Services {
 class ClientVersionRegistry;
-}
+class ConfigService;
+} // namespace Services
 
 namespace UI {
 
-/**
- * Enhanced dialog for configuring all client versions.
- * Shows all fields from clients.json and allows full CRUD operations.
- * Delegates rendering to extracted components.
- */
+class ClientPropertyEditor;
+
 class ClientConfigurationDialog {
 public:
-  ClientConfigurationDialog() = default;
+  ClientConfigurationDialog();
+  ~ClientConfigurationDialog();
 
-  // Open the dialog
-  void open(Services::ClientVersionRegistry &registry);
-
-  // Render the dialog (returns true while open)
+  void open(Services::ClientVersionRegistry &registry,
+            Services::ConfigService &config);
   bool render();
-
-  // Close the dialog
   void close();
-
-  // Check if dialog is open
   bool isOpen() const { return is_open_; }
 
-  // Callback when changes are saved
-  std::function<void()> onSave;
-
 private:
-  void renderDeleteConfirmation();
-  void browseForPath();
+  int getMajorGroup(uint32_t version) const;
+  bool matchesFilter(const Domain::ClientVersion &version) const;
+  void populateTreeData();
+  void renderToolbar();
+  void renderLeftPane();
+  void renderRightPane();
+  void renderFooter();
+  void selectClient(uint32_t version);
+  void runAssetDetection();
+
+  void addClient();
+  void duplicateClient();
+  void deleteClient(uint32_t version);
+  bool saveAll();
+  void discardChanges();
+  bool validateBeforeSave();
 
   Services::ClientVersionRegistry *registry_ = nullptr;
+  Services::ConfigService *config_ = nullptr;
   bool is_open_ = false;
 
-  // Selection state
-  uint32_t selected_version_ = 0;
-  char filter_buffer_[64] = {};
+  uint32_t active_version_ = 0;
+  char search_buf_[128] = {};
+  std::string search_filter_;
 
-  // Extracted components
-  ClientTableWidget table_widget_;
-  ClientDetailsCard details_card_;
-  ClientEditModal edit_modal_;
+  struct TreeGroup {
+    int major_version;
+    std::string label;
+    std::vector<uint32_t> client_versions;
+  };
+  std::vector<TreeGroup> tree_groups_;
 
-  // Delete confirmation state
-  bool show_delete_confirmation_ = false;
-  uint32_t version_to_delete_ = 0;
+  std::unordered_set<uint32_t> pending_deleted_;
+  std::string validation_error_;
+  bool check_signatures_ = true;
+
+  // Extracted property editor component (owns buffers, detection state, color states)
+  std::unique_ptr<ClientPropertyEditor> editor_;
 };
 
 } // namespace UI
