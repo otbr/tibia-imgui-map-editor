@@ -484,7 +484,7 @@ void StartupController::handleLoadMap() {
 void StartupController::handleClientConfiguration() {
   spdlog::info("Opening client configuration dialog");
 
-  dialog_.getClientConfigDialog().open(registry_);
+  dialog_.getClientConfigDialog().open(registry_, config_);
 }
 
 void StartupController::handlePreferences() {

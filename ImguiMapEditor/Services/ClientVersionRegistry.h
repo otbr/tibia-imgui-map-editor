@@ -118,6 +118,10 @@ public:
   size_t getVersionCount() const { return versions_.size(); }
   bool isEmpty() const { return versions_.empty(); }
 
+  // Backup/restore for dirty tracking (used by config dialog for undo)
+  void backupVersion(uint32_t version_number);
+  void restoreVersion(uint32_t version_number);
+
 private:
   std::map<uint32_t, Domain::ClientVersion>
       versions_;                                // version_number -> version

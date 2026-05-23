@@ -32,3 +32,9 @@ RME_Readonly
 
 .gemini/
 gha-creds-*.json
+/build-ninja
+compile_commands.json
+.opencode/**/node_modules
+.opencode/**/tmp
+.opencode/**/cache
+.opencode/sessions
