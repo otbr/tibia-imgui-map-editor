@@ -34,4 +34,7 @@ RME_Readonly
 gha-creds-*.json
 /build-ninja
 compile_commands.json
-.opencode
+.opencode/**/node_modules
+.opencode/**/tmp
+.opencode/**/cache
+.opencode/sessions

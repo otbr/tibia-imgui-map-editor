@@ -240,7 +240,7 @@ void MapOperationHandler::handleOpenRecentMap(const std::filesystem::path &path,
       auto srv = missing(client_version->getClientPath() / "items.srv");
       if (!dat.empty()) missing_files.push_back(dat);
       if (!spr.empty()) missing_files.push_back(spr);
-      if (!otb.empty() && !srv.empty()) missing_files.push_back(otb + "/" + srv);
+      if (!otb.empty() && !srv.empty()) missing_files.push_back("items.otb or items.srv");
       for (size_t i = 0; i < missing_files.size(); ++i) {
         if (i > 0) reason += ", ";
         reason += missing_files[i];

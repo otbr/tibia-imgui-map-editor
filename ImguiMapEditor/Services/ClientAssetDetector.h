@@ -19,10 +19,6 @@ public:
   static uint32_t
   detectVersion(const std::filesystem::path &folder,
                 const std::map<uint32_t, Domain::ClientVersion> &versions);
-
-private:
-  static std::optional<uint32_t> readSignature(const std::filesystem::path &path,
-                                               std::vector<std::string> &warnings);
 };
 
 } // namespace Services

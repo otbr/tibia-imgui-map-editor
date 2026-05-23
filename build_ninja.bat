@@ -140,3 +140,4 @@ echo   Log:       %LOG_FILE%
 echo.
 
 endlocal
+exit /b 0

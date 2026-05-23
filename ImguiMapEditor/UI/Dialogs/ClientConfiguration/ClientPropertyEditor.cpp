@@ -246,7 +246,7 @@ void ClientPropertyEditor::applyDetectionResult(
 }
 
 void ClientPropertyEditor::render() {
-  if (active_version_ == 0)
+  if (active_version_ == 0 || !registry_)
     return;
   auto *cv = registry_->getVersion(active_version_);
   if (!cv)
@@ -260,6 +260,8 @@ void ClientPropertyEditor::render() {
 }
 
 void ClientPropertyEditor::renderStatusBar() {
+  if (!registry_)
+    return;
   auto *cv = registry_->getVersion(active_version_);
   if (!cv)
     return;

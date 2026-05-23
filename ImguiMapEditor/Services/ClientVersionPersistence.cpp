@@ -57,13 +57,23 @@ ClientVersionPersistence::loadFromJson(const std::filesystem::path &path) {
     if (client.contains("datSignature")) {
       const std::string &dat_str = client["datSignature"].get<std::string>();
       if (!dat_str.empty()) {
-        dat_sig = std::stoul(dat_str, nullptr, 16);
+        try {
+          dat_sig = std::stoul(dat_str, nullptr, 16);
+        } catch (const std::exception &e) {
+          spdlog::warn("Invalid datSignature '{}' for client {}: {}", dat_str,
+                       version_number, e.what());
+        }
       }
     }
     if (client.contains("sprSignature")) {
       const std::string &spr_str = client["sprSignature"].get<std::string>();
       if (!spr_str.empty()) {
-        spr_sig = std::stoul(spr_str, nullptr, 16);
+        try {
+          spr_sig = std::stoul(spr_str, nullptr, 16);
+        } catch (const std::exception &e) {
+          spdlog::warn("Invalid sprSignature '{}' for client {}: {}", spr_str,
+                       version_number, e.what());
+        }
       }
     }
 

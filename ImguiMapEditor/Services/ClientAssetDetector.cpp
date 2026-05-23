@@ -252,7 +252,6 @@ ClientAssetDetector::detect(const std::filesystem::path &client_path,
         // Cross-validate with DAT result
         if (result.extended && *result.extended != best->extended) {
           result.warnings.push_back("DAT and SPR disagree on extended flag. DAT takes precedence.");
-          result.extended = *result.extended;
         } else {
           result.extended = best->extended;
         }

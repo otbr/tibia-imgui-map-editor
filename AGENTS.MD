@@ -94,7 +94,7 @@ If similar code found:
 <file_organization>
 
 - One class per file, unless classes are tightly coupled small helpers
-- Headers: `.hpp`, implementations: `.cpp`
+- Headers: `.h`, implementations: `.cpp`
 - Always use `#pragma once`
 - Use forward declarations liberally in headers to reduce compile times and avoid circular dependencies
 
