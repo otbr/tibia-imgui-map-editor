@@ -150,10 +150,12 @@ Domain::Item *BrowseTileWindow::getSelectedItem() {
 }
 
 void BrowseTileWindow::render(bool *p_visible) {
-  ImGuiWindowFlags flags = ImGuiWindowFlags_None;
+  bool* vis_ptr = p_visible ? p_visible : &visible_;
 
-  // Always call Begin/End for ImGui layout persistence (imgui.ini)
-  if (!ImGui::Begin("Browse Tile", p_visible, flags)) {
+  if (p_visible && !*p_visible) return;
+
+  ImGuiWindowFlags flags = ImGuiWindowFlags_None;
+  if (!ImGui::Begin("Browse Tile", vis_ptr, flags)) {
     ImGui::End();
     return;
   }

@@ -157,6 +157,10 @@ void HotkeyController::handleAction(const std::string& action) {
     else if (action == "SHOW_INGAME_BOX") {
         view_settings_.show_ingame_box = !view_settings_.show_ingame_box;
         ingame_box_.setOpen(view_settings_.show_ingame_box);
+    } else if (action == "SHOW_MINIMAP") {
+        view_settings_.show_minimap_window = !view_settings_.show_minimap_window;
+    } else if (action == "SHOW_BROWSE_TILE") {
+        view_settings_.show_browse_tile = !view_settings_.show_browse_tile;
     } else if (action == "SHOW_TOOLTIPS") {
         view_settings_.show_tooltips = !view_settings_.show_tooltips;
     } else if (action == "SHOW_PREVIEW") {
