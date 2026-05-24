@@ -32,7 +32,7 @@ struct AppSettings {
   void loadFromConfig(const ConfigService &config);
   void saveToConfig(ConfigService &config) const;
 
-  // Theme application moved to UI layer — call UI::ApplyTheme(settings.theme)
+  // Theme application moved to UI layer — call ApplyTheme(settings.theme)
 };
 
 } // namespace Services

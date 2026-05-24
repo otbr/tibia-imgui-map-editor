@@ -15,6 +15,22 @@
 namespace MapEditor {
 namespace UI {
 
+namespace {
+
+bool saveHotkeysToFile(const Domain::HotkeyBindingMap& bindings) {
+    std::vector<std::filesystem::path> save_paths = {"data/hotkeys.json",
+                                                      "../data/hotkeys.json"};
+    for (const auto& path : save_paths) {
+        if (std::filesystem::exists(path.parent_path()) ||
+            path.parent_path().empty()) {
+            return IO::HotkeyJsonReader::save(path, bindings);
+        }
+    }
+    return false;
+}
+
+} // namespace
+
 void PreferencesDialog::show() { should_open_ = true; }
 
 PreferencesDialog::Result PreferencesDialog::render() {
@@ -307,23 +323,11 @@ void PreferencesDialog::renderHotkeysTab() {
     binding.is_mouse = hotkeys[appliedIndex].isMouse;
     hotkey_registry_->registerBinding(binding);
 
-    // Save to JSON file
-    std::vector<std::filesystem::path> save_paths = {"data/hotkeys.json",
-                                                     "../data/hotkeys.json"};
-    for (const auto &path : save_paths) {
-      if (std::filesystem::exists(path.parent_path()) ||
-          path.parent_path().empty()) {
-        IO::HotkeyJsonReader::save(path, hotkey_registry_->getAllBindings());
-        break;
-      }
-    }
+    saveHotkeysToFile(hotkey_registry_->getAllBindings());
 
     // Show toast notification
     char shortcut[64];
     ImHotKey::GetHotKeyLib(hotkeys[appliedIndex], shortcut, sizeof(shortcut));
-    char msg[128];
-    snprintf(msg, sizeof(msg), "Set %s to %s",
-             hotkeys[appliedIndex].functionName, shortcut);
     Presentation::showSuccess(std::string("Set ") +
                                   hotkeys[appliedIndex].functionName + " to " +
                                   shortcut,
@@ -375,18 +379,11 @@ void PreferencesDialog::renderHotkeysTab() {
     *hotkey_registry_ = Services::HotkeyRegistry::createDefaults();
     reloadFromRegistry();
 
-    // Save defaults to JSON
-    std::vector<std::filesystem::path> save_paths = {"data/hotkeys.json",
-                                                     "../data/hotkeys.json"};
-    for (const auto &path : save_paths) {
-      if (std::filesystem::exists(path.parent_path()) ||
-          path.parent_path().empty()) {
-        IO::HotkeyJsonReader::save(path, hotkey_registry_->getAllBindings());
-        break;
-      }
+    if (saveHotkeysToFile(hotkey_registry_->getAllBindings())) {
+      Presentation::showSuccess("Hotkeys reset to defaults", 2000);
+    } else {
+      Presentation::showError("Failed to save hotkeys to file", 3000);
     }
-
-    Presentation::showSuccess("Hotkeys reset to defaults", 2000);
   }
 }
 

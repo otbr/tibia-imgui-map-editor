@@ -18,7 +18,7 @@ const Domain::HotkeyBinding* HotkeyRegistry::findByAction(const std::string& act
     return it != bindings_.end() ? &it->second : nullptr;
 }
 
-const Domain::HotkeyBinding* HotkeyRegistry::findByKey(int key, int mods) const {
+const Domain::HotkeyBinding* HotkeyRegistry::findByKey(int32_t key, int32_t mods) const {
     const Domain::HotkeyBinding* bestMatch = nullptr;
     int maxModCount = -1;
 
@@ -36,7 +36,7 @@ const Domain::HotkeyBinding* HotkeyRegistry::findByKey(int key, int mods) const 
     return bestMatch;
 }
 
-bool HotkeyRegistry::hasConflict(int key, int mods, const std::string& exclude_action) const {
+bool HotkeyRegistry::hasConflict(int32_t key, int32_t mods, const std::string& exclude_action) const {
     for (const auto& [id, binding] : bindings_) {
         if (id != exclude_action && binding.matches(key, mods)) {
             return true;

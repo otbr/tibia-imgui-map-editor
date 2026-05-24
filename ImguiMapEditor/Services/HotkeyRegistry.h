@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Domain/HotkeyDefinitions.h"
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -37,13 +38,13 @@ public:
      * Find binding by key combination.
      * @return nullptr if no binding matches
      */
-    const Domain::HotkeyBinding* findByKey(int key, int mods) const;
+    const Domain::HotkeyBinding* findByKey(int32_t key, int32_t mods) const;
     
     /**
      * Check if a key combination conflicts with existing bindings.
      * @param exclude_action Action ID to exclude from conflict check
      */
-    bool hasConflict(int key, int mods, const std::string& exclude_action = "") const;
+    bool hasConflict(int32_t key, int32_t mods, const std::string& exclude_action = "") const;
     
     /**
      * Get all bindings in a category.

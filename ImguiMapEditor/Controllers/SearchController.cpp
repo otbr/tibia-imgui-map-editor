@@ -15,15 +15,15 @@ SearchController::SearchController()
 
 SearchController::~SearchController() = default;
 
-UI::QuickSearchPopup* SearchController::getQuickSearchPopup() {
+UI::QuickSearchPopup* SearchController::getQuickSearchPopup() const {
     return quick_search_popup_.get();
 }
 
-UI::AdvancedSearchDialog* SearchController::getAdvancedSearchDialog() {
+UI::AdvancedSearchDialog* SearchController::getAdvancedSearchDialog() const {
     return advanced_search_dialog_.get();
 }
 
-UI::SearchResultsWidget* SearchController::getSearchResultsWidget() {
+UI::SearchResultsWidget* SearchController::getSearchResultsWidget() const {
     return search_results_widget_.get();
 }
 

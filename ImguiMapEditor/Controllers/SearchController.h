@@ -43,9 +43,9 @@ public:
     );
 
     // Accessors for UI components (needed for rendering and callbacks)
-    UI::QuickSearchPopup* getQuickSearchPopup();
-    UI::AdvancedSearchDialog* getAdvancedSearchDialog();
-    UI::SearchResultsWidget* getSearchResultsWidget();
+    UI::QuickSearchPopup* getQuickSearchPopup() const;
+    UI::AdvancedSearchDialog* getAdvancedSearchDialog() const;
+    UI::SearchResultsWidget* getSearchResultsWidget() const;
 
 private:
     // UI Components (unique_ptr to allow forward declarations in header)

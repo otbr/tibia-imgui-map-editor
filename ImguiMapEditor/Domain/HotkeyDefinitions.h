@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 
@@ -13,12 +14,12 @@ namespace Domain {
  */
 struct HotkeyBinding {
     std::string action_id;
-    int key = 0;        // GLFW key code or mouse button
-    int mods = 0;       // GLFW modifier bits
+    int32_t key = 0;        // GLFW key code or mouse button
+    int32_t mods = 0;       // GLFW modifier bits
     std::string category;
     bool is_mouse = false;
 
-    bool matches(int k, int m) const {
+    bool matches(int32_t k, int32_t m) const {
         return key == k && (m & mods) == mods;
     }
 };
