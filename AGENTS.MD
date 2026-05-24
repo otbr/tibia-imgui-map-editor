@@ -340,6 +340,8 @@ All constants live in `Core/Config.h`:
 
 `MapViewCamera` implements the `ICoordinateTransformer` interface. Services and controllers that need coordinate transforms should depend on `ICoordinateTransformer*`, not concrete classes.
 
+Rendering overlays (`StatusOverlay`, `SelectionOverlay`) also depend on `ICoordinateTransformer` — they call `screenToTile()`, `tileToScreen()`, `getViewportPos()`, `getViewportSize()`, `getZoom()`, `getCurrentFloor()` through the interface.
+
 ### 1.4. Floor Parallax
 
 Above-ground floors (z < 7) have a diagonal parallax offset, applying the formula:
@@ -1096,12 +1098,19 @@ Application::shutdown()
 
 > [!WARNING]
 > **Known violations (documented for awareness):**
-> - `Rendering/Frame/RenderOrchestrator.cpp` includes ~12 UI headers (orchestrates all UI rendering)
 > - `Domain/MapInstance.h` depends on `Services/Selection/SelectionService.h`
+> - `Domain/History/` depends on `Services/ClientDataService.h` and `Services/Selection/`
 > - `IO/Otbm/OtbmReader.cpp` and other I/O files depend on `Services/ClientDataService.h`
-> - `Services/AppSettings.cpp` includes `UI/Core/Theme.h`
-> - `Services/SpriteManager.h` depends on `Rendering/` for texture/atlas types
+> - `Domain/MapInstance.cpp` depends on `Services/ClientDataService.h` (for undo/redo)
 > These violations are acknowledged technical debt. New code should respect the layer rules.
+>
+> **Resolved violations (fixed in recent cleanup):**
+> - ~~`Rendering/Frame/RenderOrchestrator.cpp` includes ~12 UI headers~~ → moved to `Application/Frame/`
+> - ~~`Services/AppSettings.cpp` includes `UI/Core/Theme.h`~~ → `apply()` removed; AppSettings is pure config
+> - ~~`Services/SpriteManager.h` depends on `Rendering/`~~ → documented as intentional bridge-layer exception
+> - ~~`IO/HotkeyJsonReader.cpp` depends on `Services/HotkeyRegistry`~~ → split to `Domain/HotkeyDefinitions`
+> - ~~`Domain/SelectionSettings.cpp` depends on `Services/ConfigService`~~ → serialization moved to `SettingsRegistry`
+> - ~~`Rendering/Overlays/*` depend on `UI/Map/MapViewCamera.h`~~ → now depend on `Domain/ICoordinateTransformer`
 
 ---
 
@@ -1118,7 +1127,7 @@ Application::shutdown()
 | **Add a render pass** | `Rendering/Passes/MyPass.h/.cpp`, wire in `MapRenderer` | UI files, Service files |
 | **Add a map operation** | `Services/Map/MyOpService.h/.cpp`, use HistoryManager pattern | Application.cpp |
 | **Add a dialog** | `UI/Dialogs/MyDialog.h/.cpp`, `Presentation/Dialogs/MyDialogController.h` (if complex), `Application/DialogContainer.h` | Application.cpp |
-| **Add a hotkey** | `Services/HotkeyRegistry` (register), `Controllers/HotkeyController` (handle) | Application.cpp |
+| **Add a hotkey** | `Domain/HotkeyDefinitions.h` (data), `Services/HotkeyRegistry` (register), `Controllers/HotkeyController` (handle) | Application.cpp |
 | **Add a file format** | `IO/MyReader.h/.cpp`, wire into `MapLoadingService` or `MapSavingService` | UI files |
 | **Modify tile rendering** | `Rendering/Tile/ItemRenderer`, `Rendering/Map/TileRenderer` | Update BOTH cached and dynamic paths! |
 | **Add a preview provider** | `Services/Preview/MyPreviewProvider.h/.cpp`, register in `PreviewService` | Rendering files |
@@ -1129,6 +1138,7 @@ Application::shutdown()
 |-----------|------|----------------|-------------|
 | `Application/` | Lifecycle, managers, factories, session | Direct UI rendering, business logic | Adding new managers, modifying startup, wiring new services |
 | `Application/Coordination/` | VersionSwitchCoordinator | UI code | Modifying version switching logic |
+| `Application/Frame/` | RenderOrchestrator | — | Frame orchestration (moved from Rendering/Frame to break Rendering→UI dependency) |
 | `Application/Selection/` | FloorScopeHelper, LassoSelectionProcessor, SmartSelectionStrategy | Rendering | Modifying selection state management |
 | `Application/` (root) | SessionLifecycleManager, PersistenceManager, PlatformManager | — | Note: these managers live at `Application/` root, NOT `Application/Coordination/` |
 | `Brushes/` | BrushRegistry, BrushController, BrushSystem | UI code | Brush orchestration (Registry and Controller are at `Brushes/` root, NOT `Brushes/Core/`) |
@@ -1139,7 +1149,7 @@ Application::shutdown()
 | `Brushes/Enums/` | BrushEnums | UI, rendering | Brush enum types |
 | `Controllers/` | Input handling, UI-service coordination | Direct rendering, domain logic | Adding input handlers, new controllers |
 | `Core/` | Configuration constants, app-wide types | Business logic | Modifying config keys, constants |
-| `Domain/` | Pure data models (Tile, Item, Creature, Position) | I/O, UI, rendering, services | Adding/modifying data structures |
+| `Domain/` | Pure data models (Tile, Item, Creature, Position, HotkeyDefinitions) | I/O, UI, rendering, services | Adding/modifying data structures |
 | `Domain/History/` | Undo/redo system | UI code | Modifying undo behavior (rarely needed) |
 | `Domain/Palette/` | Palette data structures | UI rendering | Adding palette types |
 | `Domain/Selection/` | SelectionBucket, selection data | UI rendering | Modifying selection storage |
@@ -1159,7 +1169,7 @@ Application::shutdown()
 | `Rendering/Backend/` | SpriteBatch, RingBuffer, MultiDrawIndirect | Domain, UI | Low-level GPU optimizations |
 | `Rendering/Camera/` | ViewCamera | Domain | Camera behavior changes |
 | `Rendering/Core/` | Framebuffer, Shader, Texture, VAO wrappers | Domain, UI | GPU resource management |
-| `Rendering/Frame/` | RenderOrchestrator, RenderingManager, RenderState | UI | Frame-level orchestration changes |
+| `Rendering/Frame/` | RenderingManager, RenderState | UI | GPU state management (RenderOrchestrator moved to Application/Frame/) |
 | `Rendering/Light/` | LightManager, LightGatherer, LightOverlay | UI | Lighting system changes |
 | `Rendering/Map/` | MapRenderer, TileRenderer | UI | Map rendering changes |
 | `Rendering/Minimap/` | MinimapRenderer, MinimapTexture | UI | Minimap rendering |
@@ -1436,7 +1446,7 @@ Version selection happens in `ClientVersionManager`. The correct reader is insta
 | `Position` | `Domain/Position.h` | 3D tile coords + operators + hash |
 | `HistoryManager` | `Domain/History/HistoryManager.h` | Undo/redo API |
 | `TileSnapshot` | `Domain/History/TileSnapshot.h` | Tile state capture/restore |
-| `SelectionBucket` | `Domain/Selection/SelectionBucket.h` | Selected items container |
+| `HotkeyDefinitions` | `Domain/HotkeyDefinitions.h` | HotkeyBinding struct + HotkeyBindingMap alias |
 
 ### I/O Utilities
 
