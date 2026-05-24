@@ -150,6 +150,8 @@ Domain::Item *BrowseTileWindow::getSelectedItem() {
 }
 
 void BrowseTileWindow::render(bool *p_visible) {
+  if (p_visible) visible_ = *p_visible;
+
   bool* vis_ptr = p_visible ? p_visible : &visible_;
 
   if (p_visible && !*p_visible) return;
