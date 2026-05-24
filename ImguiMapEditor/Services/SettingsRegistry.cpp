@@ -1,6 +1,14 @@
 #include "Services/SettingsRegistry.h"
 #include <spdlog/spdlog.h>
 
+namespace {
+
+// Config keys for SelectionSettings persistence
+constexpr const char* kSelectionFloorScopeKey = "selection.floor_scope";
+constexpr const char* kSelectionUsePixelPerfectKey = "selection.use_pixel_perfect";
+
+} // namespace
+
 namespace MapEditor::Services {
 
 SettingsRegistry::SettingsRegistry() = default;
@@ -11,8 +19,6 @@ bool SettingsRegistry::load() {
   config_service_->load();
 
   version_registry_ = std::make_unique<ClientVersionRegistry>();
-  // We can attempt to load defaults, but failure here might be handled gracefully depending on app requirements.
-  // Original Application::loadClientVersions returned false on failure, so we'll propagate that.
   if (!version_registry_->loadDefaults(*config_service_)) {
     return false;
   }
@@ -21,9 +27,17 @@ bool SettingsRegistry::load() {
   recent_locations_->loadFromConfig(*config_service_);
 
   view_settings_.loadFromConfig(*config_service_);
-  selection_settings_.loadFromConfig(*config_service_);
 
-  // AppSettings loading doesn't require ImGui context, only applying it does.
+  // SelectionSettings serialization (moved from Domain to break Domain→Services dependency)
+  {
+    int raw_scope = config_service_->get<int>(kSelectionFloorScopeKey,
+        static_cast<int>(Domain::SelectionFloorScope::CurrentFloor));
+    if (raw_scope >= 0 && raw_scope <= static_cast<int>(Domain::SelectionFloorScope::AllFloors)) {
+      selection_settings_.floor_scope = static_cast<Domain::SelectionFloorScope>(raw_scope);
+    }
+    selection_settings_.use_pixel_perfect = config_service_->get<bool>(kSelectionUsePixelPerfectKey, false);
+  }
+
   app_settings_.loadFromConfig(*config_service_);
 
   hotkey_registry_ = HotkeyRegistry::loadOrCreateDefaults();
@@ -41,7 +55,11 @@ void SettingsRegistry::save() {
     recent_locations_->saveToConfig(*config_service_);
 
   view_settings_.saveToConfig(*config_service_);
-  selection_settings_.saveToConfig(*config_service_);
+
+  // SelectionSettings serialization (moved from Domain to break Domain→Services dependency)
+  config_service_->set(kSelectionFloorScopeKey, static_cast<int>(selection_settings_.floor_scope));
+  config_service_->set(kSelectionUsePixelPerfectKey, selection_settings_.use_pixel_perfect);
+
   app_settings_.saveToConfig(*config_service_);
 
   config_service_->save();
