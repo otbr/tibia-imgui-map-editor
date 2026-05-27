@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Config.h"
 #include "Domain/ChunkedMap.h"
 #include "Domain/Position.h"
 #include "Services/ClientDataService.h"
@@ -30,8 +31,12 @@ namespace Services {
  */
 struct NewMapConfig {
   std::string map_name;
-  int map_width = 256;
-  int map_height = 256;
+  uint16_t map_width = Config::Map::DEFAULT_MAP_SIZE;
+  uint16_t map_height = Config::Map::DEFAULT_MAP_SIZE;
+  uint32_t otbm_version = 2;
+  uint32_t items_major = 1;
+  uint32_t items_minor = 1;
+  std::string description;
 };
 
 /**
@@ -116,7 +121,18 @@ public:
    * @return Load result with success/error
    */
   MapLoadingResult createNewMap(const NewMapConfig &config,
-                                uint32_t current_client_index);
+                                 uint32_t current_client_index);
+
+  /**
+   * Create a new empty map reusing existing client data.
+   * Use this when creating a new map after client data is already loaded
+   * (e.g., editor-state shortcut Ctrl+N).
+   * Does NOT reload or destroy the existing ClientDataService.
+   */
+  MapLoadingResult createNewMapWithExistingClientData(
+      const NewMapConfig &config,
+      Services::ClientDataService *existing_client_data,
+      Services::SpriteManager *existing_sprite_manager);
 
   /**
    * Load client data (OTB, DAT, SPR) for the specified client index.

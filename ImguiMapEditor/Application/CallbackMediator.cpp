@@ -29,7 +29,6 @@
 #include "UI/Dialogs/Properties/MapPropertiesDialog.h"
 #include "UI/Dialogs/UnsavedChangesModal.h"
 #include "UI/Map/MapPanel.h"
-#include "UI/Panels/NewMapPanel.h"
 #include "UI/PreferencesDialog.h"
 #include "UI/Ribbon/Panels/FilePanel.h"
 #include "UI/Widgets/QuickSearchPopup.h"
@@ -38,9 +37,32 @@
 #include "UI/Windows/IngameBoxWindow.h"
 #include "UI/Windows/MinimapWindow.h"
 #include <nfd.hpp>
+#include <format>
 #include <spdlog/spdlog.h>
 
 namespace MapEditor {
+
+namespace {
+void createInstantUnnamedMap(const CallbackMediator::Context &ctx) {
+  if (!ctx.tab_manager || !ctx.map_operations)
+    return;
+  auto *session = ctx.tab_manager->getActiveSession();
+  if (!session || !session->getMap())
+    return;
+  auto *map = session->getMap();
+  uint32_t num = ctx.tab_manager->nextUnnamedNumber();
+  Services::NewMapConfig config;
+  config.map_name = (num == 1) ? "unnamed.otbm"
+                               : std::format("unnamed-{}.otbm", num);
+  config.map_width = map->getWidth();
+  config.map_height = map->getHeight();
+  config.otbm_version = map->getVersion().otbm_version;
+  config.items_major = map->getVersion().items_major_version;
+  config.items_minor = map->getVersion().items_minor_version;
+  config.description = map->getDescription();
+  ctx.map_operations->handleNewMapDirect(config);
+}
+} // namespace
 
 void CallbackMediator::wireAll(Context &ctx) {
   // === Edit Towns dialog — inject persistent dependencies once ===
@@ -154,11 +176,7 @@ void CallbackMediator::wireTabCallbacks(Context &ctx) {
   });
 
   // Hotkey file operations
-  // NewMap from Editor state uses standalone dialog
-  ctx.hotkey->setNewMapCallback([ctx]() {
-    if (ctx.main_window)
-      ctx.main_window->showNewMapDialog();
-  });
+  ctx.hotkey->setNewMapCallback([ctx]() { createInstantUnnamedMap(ctx); });
   ctx.hotkey->setOpenMapCallback([ctx]() {
     if (ctx.map_operations)
       ctx.map_operations->handleOpenMap();
@@ -209,6 +227,12 @@ void CallbackMediator::wireTabCallbacks(Context &ctx) {
 
     if (session) {
       const auto &state = session->getViewState();
+
+      if (session->getMap()) {
+        ctx.map_panel->setMapBounds(session->getMap()->getWidth(),
+                                    session->getMap()->getHeight());
+      }
+
       ctx.map_panel->setCameraPosition(state.camera_x, state.camera_y);
       ctx.map_panel->setZoom(state.zoom);
       ctx.map_panel->setCurrentFloor(static_cast<int16_t>(state.current_floor));
@@ -277,20 +301,10 @@ void CallbackMediator::wireMapOperationCallbacks(Context &ctx) {
           ctx.on_notification(static_cast<int>(type), message);
         }
       });
-
-  // Wire MainWindow dialog callbacks to MapOperationHandler
-  if (ctx.main_window) {
-    ctx.main_window->setNewMapCallback([ctx](const UI::NewMapPanel::State& config) {
-      ctx.map_operations->handleNewMapDirect(config.map_name, config.map_width,
-                                             config.map_height, config.selected_client_index);
-    });
-  }
 }
 
 void CallbackMediator::wireMenuCallbacks(Context &ctx) {
-  // NewMap from Editor state uses standalone dialog
-  ctx.menu_bar->setNewMapCallback(
-      [ctx]() { if (ctx.main_window) ctx.main_window->showNewMapDialog(); });
+  ctx.menu_bar->setNewMapCallback([ctx]() { createInstantUnnamedMap(ctx); });
   ctx.menu_bar->setOpenMapCallback(
       [ctx]() { ctx.map_operations->handleOpenMap(); });
   ctx.menu_bar->setOpenSecMapCallback([ctx]() {
@@ -474,9 +488,8 @@ void CallbackMediator::wireSecondaryClientCallbacks(Context &ctx) {
 
 void CallbackMediator::wireRibbonCallbacks(Context &ctx) {
   if (ctx.file_panel) {
-    // NewMap from Editor state uses standalone dialog  
     ctx.file_panel->SetNewMapCallback(
-        [ctx]() { if (ctx.main_window) ctx.main_window->showNewMapDialog(); });
+        [ctx]() { createInstantUnnamedMap(ctx); });
     ctx.file_panel->SetOpenMapCallback(
         [ctx]() { ctx.map_operations->handleOpenMap(); });
     ctx.file_panel->SetSaveMapCallback(

@@ -372,7 +372,10 @@ MapLoadingResult MapLoadingService::createNewMap(const NewMapConfig &config,
   }
 
   current_map_ = std::make_unique<Domain::ChunkedMap>();
-  current_map_->createNew(config.map_width, config.map_height, current_client_index);
+  current_map_->createNew(config.map_width, config.map_height,
+                          current_client_index, config.otbm_version,
+                          config.items_major, config.items_minor,
+                          config.description);
   current_map_->setName(config.map_name);
 
   // Set full version info from ClientVersion registry
@@ -381,10 +384,10 @@ MapLoadingResult MapLoadingService::createNewMap(const NewMapConfig &config,
   auto *version_info = version_registry_.getVersion(current_client_index);
   if (version_info) {
     Domain::ChunkedMap::MapVersion map_version;
-    map_version.otbm_version = version_info->getOtbmVersion();
+    map_version.otbm_version = config.otbm_version;
     map_version.client_version = version_info->getVersion();
-    map_version.items_major_version = version_info->getOtbMajor();
-    map_version.items_minor_version = version_info->getOtbVersion();
+    map_version.items_major_version = config.items_major ? config.items_major : version_info->getOtbMajor();
+    map_version.items_minor_version = config.items_minor ? config.items_minor : version_info->getOtbVersion();
     current_map_->setVersion(map_version);
     spdlog::info("New map version set: OTBM v{}, client {}, items {}.{}",
                  map_version.otbm_version, map_version.client_version,
@@ -407,6 +410,53 @@ MapLoadingResult MapLoadingService::createNewMap(const NewMapConfig &config,
   result.sprite_manager = std::move(sprite_manager_);
 
   result.success = true;
+  result.camera_center = Domain::Position(
+      static_cast<int32_t>(config.map_width / 2),
+      static_cast<int32_t>(config.map_height / 2), 7);
+  return result;
+}
+
+MapLoadingResult MapLoadingService::createNewMapWithExistingClientData(
+    const NewMapConfig &config,
+    Services::ClientDataService *existing_client_data,
+    Services::SpriteManager *existing_sprite_manager) {
+  MapLoadingResult result;
+
+  spdlog::info("Creating new map with existing client data: {} ({}x{})",
+               config.map_name, config.map_width, config.map_height);
+
+  current_map_ = std::make_unique<Domain::ChunkedMap>();
+  uint32_t client_ver = existing_client_data ? existing_client_data->getClientVersion() : 0;
+  current_map_->createNew(config.map_width, config.map_height, client_ver,
+                          config.otbm_version, config.items_major,
+                          config.items_minor, config.description);
+  current_map_->setName(config.map_name);
+
+  Domain::ChunkedMap::MapVersion map_version;
+  map_version.otbm_version = config.otbm_version;
+  map_version.client_version = client_ver;
+  map_version.items_major_version = config.items_major;
+  map_version.items_minor_version = config.items_minor;
+
+  // Normalize: fall back to registry values if config provides zero
+  if (!map_version.items_major_version || !map_version.items_minor_version) {
+    if (auto *cv = version_registry_.findBestByVersion(client_ver)) {
+      if (!map_version.items_major_version) map_version.items_major_version = cv->getOtbMajor();
+      if (!map_version.items_minor_version) map_version.items_minor_version = cv->getOtbVersion();
+    }
+  }
+  current_map_->setVersion(map_version);
+
+  // Cache sprites for performance using existing sprite manager
+  if (existing_client_data && existing_sprite_manager) {
+    existing_client_data->optimizeItemSprites(*existing_sprite_manager, true);
+  }
+
+  result.map = std::move(current_map_);
+  result.success = true;
+  result.camera_center = Domain::Position(
+      static_cast<int32_t>(config.map_width / 2),
+      static_cast<int32_t>(config.map_height / 2), 7);
   return result;
 }
 
