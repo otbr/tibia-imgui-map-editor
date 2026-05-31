@@ -34,13 +34,12 @@ bool NewMapPanel::render(State &state) {
 
   auto applyGlow = [&](bool cond) {
     if (cond) {
-      ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(SC::PULSE_BASE.x, SC::PULSE_BASE.y, SC::PULSE_BASE.z, 0.3f + pulse * 0.5f));
-      ImGui::PushStyleColor(ImGuiCol_Border,  ImVec4(SC::GOLD.x, SC::GOLD.y, SC::GOLD.z, 0.5f + pulse * 0.5f));
+      ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(SC::INFO.x, SC::INFO.y, SC::INFO.z, 0.3f + pulse * 0.4f));
     }
   };
-  auto popGlow = [](bool cond) { if (cond) ImGui::PopStyleColor(2); };
+  auto popGlow = [](bool cond) { if (cond) ImGui::PopStyleColor(1); };
 
-  constexpr ImVec4 label = SC::LABEL;
+  auto label = SC::TextDim();
 
   // =========================================================
   //  LEFT COLUMN

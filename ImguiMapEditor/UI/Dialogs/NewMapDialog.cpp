@@ -32,9 +32,6 @@ void NewMapDialog::render() {
       ImVec2(Config::UI::NEW_MAP_DIALOG_W, Config::UI::NEW_MAP_DIALOG_H),
       ImGuiCond_Appearing);
 
-  // Match startup dialog dark styling
-  ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.10f, 0.12f, 0.14f, 1.0f));
-  ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.14f, 0.16f, 1.0f));
   ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 8.0f);
   ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 6.0f);
   ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
@@ -52,10 +49,10 @@ void NewMapDialog::render() {
 
       if (ImGui::BeginTabItem("SEC")) {
         ImGui::Spacing();
-        ImGui::TextColored(SC::LABEL,
+        ImGui::TextColored(SC::TextDim(),
                            ICON_FA_CLOCK " Coming soon");
         ImGui::Spacing();
-        ImGui::TextColored(SC::EMPTY,
+        ImGui::TextColored(SC::TextDim(),
                            "SEC format support is not yet implemented.");
         ImGui::EndTabItem();
       }
@@ -117,7 +114,6 @@ void NewMapDialog::render() {
   }
 
   ImGui::PopStyleVar(3);
-  ImGui::PopStyleColor(2);
 }
 
 } // namespace UI

@@ -27,7 +27,8 @@ void ThemePanel::Render() {
             ImVec4 color_preview = theme.preview_color;
 
             switch (theme.type) {
-            case ThemeType::ModernDark:
+            case ThemeType::DocumentDark:
+            case ThemeType::DocumentMidnight:
                 theme_icon = ICON_FA_MOON;
                 break;
             case ThemeType::DocumentLight:

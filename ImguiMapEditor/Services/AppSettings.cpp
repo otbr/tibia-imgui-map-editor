@@ -6,11 +6,11 @@
 namespace MapEditor {
 namespace Services {
 
-AppSettings::AppSettings() : theme(ThemeType::ModernDark) {}
+AppSettings::AppSettings() : theme(ThemeType::DocumentLight) {}
 
 void AppSettings::loadFromConfig(const ConfigService &config) {
   theme = static_cast<ThemeType>(
-      config.get<int>("app.theme", static_cast<int>(ThemeType::ModernDark)));
+      config.get<int>("app.theme", static_cast<int>(ThemeType::DocumentLight)));
   paletteIconSize = config.get<float>("app.paletteIconSize", 48.0f);
   openPaletteNames = config.get<std::string>("app.openPaletteNames", "");
   spdlog::info(

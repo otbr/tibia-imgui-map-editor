@@ -143,7 +143,8 @@ void PreferencesDialog::renderEditorTab() {
 
         const char* theme_icon = ICON_FA_CIRCLE;
         switch (theme.type) {
-          case ThemeType::ModernDark:     theme_icon = ICON_FA_MOON; break;
+          case ThemeType::DocumentDark:   theme_icon = ICON_FA_MOON; break;
+          case ThemeType::DocumentMidnight: theme_icon = ICON_FA_MOON; break;
           case ThemeType::DocumentLight:  theme_icon = ICON_FA_SUN; break;
         }
 
