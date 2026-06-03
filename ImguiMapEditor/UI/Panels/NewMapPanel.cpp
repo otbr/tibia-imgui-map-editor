@@ -44,8 +44,8 @@ bool NewMapPanel::render(State &state) {
   // =========================================================
   //  LEFT COLUMN
   // =========================================================
-  float content_h = 200.0f;
-  ImGui::BeginChild("##left", ImVec2(left_w, content_h), ImGuiChildFlags_None);
+  float content_h = avail.y;
+  ImGui::BeginChild("##left", ImVec2(left_w, content_h), ImGuiChildFlags_Borders);
 
   // ---- Map Name ----
   ImGui::TextColored(label, ICON_FA_FILE " Map Name");
@@ -156,14 +156,12 @@ bool NewMapPanel::render(State &state) {
   // =========================================================
   //  RIGHT COLUMN — Description (compact, ~3 lines)
   // =========================================================
-  ImGui::BeginChild("##right", ImVec2(right_w, content_h), ImGuiChildFlags_None);
+  ImGui::BeginChild("##right", ImVec2(right_w, content_h), ImGuiChildFlags_Borders);
   ImGui::TextColored(label, ICON_FA_FILE_LINES " Description");
   ImGui::Spacing();
-  auto desc_before = state.description;
-  ImGui::InputTextMultiline("##desc", &state.description,
-                            ImVec2(-1, ImGui::GetContentRegionAvail().y - 1),
-                            ImGuiInputTextFlags_None);
-  if (state.description != desc_before)
+  if (ImGui::InputTextMultiline("##desc", &state.description,
+                                ImVec2(-1, ImGui::GetContentRegionAvail().y - 1),
+                                ImGuiInputTextFlags_None))
     changed = true;
   ImGui::EndChild();
 
