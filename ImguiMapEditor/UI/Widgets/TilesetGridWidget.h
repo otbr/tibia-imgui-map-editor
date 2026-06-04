@@ -16,6 +16,10 @@ struct AppSettings;
 
 namespace MapEditor {
 
+namespace Rendering {
+class Texture;
+}
+
 namespace Services {
 class ClientDataService;
 class SpriteManager;
@@ -173,10 +177,18 @@ private:
   void applyFilter();
 
   /**
-   * Get OpenGL texture ID for a brush (RawBrush or CreatureBrush).
+   * Render a rounded card with sprite and optional selection/pulse border.
+   * Used by both cross-tileset and single-tileset rendering paths.
+   */
+  void renderBrushCard(ImVec2 cursorPos, ImVec2 size, Rendering::Texture *tex,
+                       bool isSelected, bool isHovered,
+                       bool isPulsing = false, float pulseElapsed = 0.0f);
+
+  /**
+   * Get preview texture for a brush (RawBrush or CreatureBrush).
    * Uses PreviewUtils for consistent texture retrieval.
    */
-  void *getBrushTextureId(const Brushes::IBrush *brush) const;
+  Rendering::Texture *getBrushTexture(const Brushes::IBrush *brush) const;
 
   // Services (non-owning)
   Services::ClientDataService *clientData_ = nullptr;

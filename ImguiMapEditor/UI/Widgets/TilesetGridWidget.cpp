@@ -59,7 +59,7 @@ void TilesetGridWidget::setTileset(const std::string &tilesetName) {
   }
 }
 
-void *TilesetGridWidget::getBrushTextureId(const Brushes::IBrush *brush) const {
+Rendering::Texture *TilesetGridWidget::getBrushTexture(const Brushes::IBrush *brush) const {
   if (!clientData_ || !spriteManager_ || !brush) {
     return nullptr;
   }
@@ -69,22 +69,60 @@ void *TilesetGridWidget::getBrushTextureId(const Brushes::IBrush *brush) const {
     const auto *itemType = clientData_->getItemTypeByServerId(
         static_cast<uint16_t>(rawBrush->getItemId()));
     if (auto *tex = Utils::GetItemPreview(*spriteManager_, itemType)) {
-      return reinterpret_cast<void *>(static_cast<uintptr_t>(tex->id()));
+      return tex;
     }
   }
-  // Try CreatureBrush - use existing utility
+  // Try CreatureBrush
   else if (auto *creatureBrush =
                dynamic_cast<const Brushes::CreatureBrush *>(brush)) {
     const auto &outfit = creatureBrush->getOutfit();
     auto preview =
         Utils::GetCreaturePreview(*clientData_, *spriteManager_, outfit);
     if (preview.texture) {
-      return reinterpret_cast<void *>(
-          static_cast<uintptr_t>(preview.texture->id()));
+      return preview.texture;
     }
   }
 
   return nullptr;
+}
+
+void TilesetGridWidget::renderBrushCard(ImVec2 cursorPos, ImVec2 size,
+                                         Rendering::Texture *tex,
+                                         bool isSelected, bool isHovered,
+                                         bool isPulsing, float pulseElapsed) {
+  ImDrawList *dl = ImGui::GetWindowDrawList();
+  constexpr float ROUNDING = 4.0f;
+  constexpr float PADDING = 2.0f;
+  ImVec2 rectMax(cursorPos.x + size.x, cursorPos.y + size.y);
+
+  ImU32 bgCol = ImGui::GetColorU32(ImGuiCol_FrameBg);
+  if (isSelected) {
+    bgCol = ImGui::GetColorU32(ImGuiCol_Header);
+  } else if (isHovered) {
+    bgCol = ImGui::GetColorU32(ImGuiCol_HeaderHovered);
+  }
+  dl->AddRectFilled(cursorPos, rectMax, bgCol, ROUNDING);
+
+  if (tex) {
+    ImVec2 imgMin(cursorPos.x + PADDING, cursorPos.y + PADDING);
+    ImVec2 imgMax(rectMax.x - PADDING, rectMax.y - PADDING);
+    dl->AddImageRounded((void *)(intptr_t)tex->id(), imgMin, imgMax,
+                        ImVec2(0, 0), ImVec2(1, 1), IM_COL32_WHITE, ROUNDING);
+  }
+
+  if (isSelected) {
+    if (isPulsing && pulseElapsed < PULSE_DURATION) {
+      float pulse = 0.5f + 0.5f * std::sin(pulseElapsed * 8.0f);
+      ImU32 pulseCol = IM_COL32(static_cast<int>(50 * (1 - pulse)),
+                                 static_cast<int>(220 * pulse + 35),
+                                 static_cast<int>(80 * pulse), 255);
+      float thickness = 2.0f + pulse * 2.0f;
+      dl->AddRect(cursorPos, rectMax, pulseCol, ROUNDING, 0, thickness);
+    } else {
+      dl->AddRect(cursorPos, rectMax, IM_COL32(100, 180, 255, 255), ROUNDING,
+                  0, 2.0f);
+    }
+  }
 }
 
 void TilesetGridWidget::render() {
@@ -286,34 +324,16 @@ void TilesetGridWidget::renderBrushGrid() {
 
       ImGui::PushID(static_cast<int>(i));
 
-      // Render brush tile
+      Rendering::Texture *tex = getBrushTexture(brush);
       ImVec2 tileSize(getIconSize(), getIconSize());
       ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+      ImGui::Dummy(tileSize);
 
-      void *textureId = getBrushTextureId(brush);
+      bool isCrossSelected = brush->getName() == selectedBrushName_;
+      renderBrushCard(cursorPos, tileSize, tex, isCrossSelected,
+                      ImGui::IsItemHovered());
 
-      ImGui::InvisibleButton("##tile", tileSize);
-      bool isHovered = ImGui::IsItemHovered();
-      bool isClicked = ImGui::IsItemClicked();
-
-      ImDrawList *dl = ImGui::GetWindowDrawList();
-
-      // Background
-      ImU32 bgColor =
-          isHovered ? IM_COL32(80, 80, 80, 255) : IM_COL32(40, 40, 40, 255);
-      dl->AddRectFilled(
-          cursorPos, ImVec2(cursorPos.x + tileSize.x, cursorPos.y + tileSize.y),
-          bgColor);
-
-      // Sprite
-      if (textureId) {
-        dl->AddImage(
-            textureId, cursorPos,
-            ImVec2(cursorPos.x + tileSize.x, cursorPos.y + tileSize.y));
-      }
-
-      // Tooltip
-      if (isHovered) {
+      if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::Text("%s", brush->getName().c_str());
         ImGui::TextDisabled("From: %s", bws.sourceTileset.c_str());
@@ -321,15 +341,13 @@ void TilesetGridWidget::renderBrushGrid() {
         ImGui::EndTooltip();
       }
 
-      // Double-click handling
       if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
         if (onBrushDoubleClicked_) {
           onBrushDoubleClicked_(bws.sourceTileset, brush->getName());
         }
       }
 
-      // Click handling
-      if (isClicked) {
+      if (ImGui::IsItemClicked()) {
         selectedBrushName_ = brush->getName();
         if (brushController_) {
           brushController_->setBrush(const_cast<Brushes::IBrush *>(brush));
@@ -411,7 +429,7 @@ void TilesetGridWidget::renderBrushGrid() {
       ImVec2 tileSize(getIconSize(), getIconSize());
       ImVec2 cursorPos = ImGui::GetCursorScreenPos();
 
-      void *textureId = getBrushTextureId(brush);
+      Rendering::Texture *tex = getBrushTexture(brush);
 
       // Drag source
       ImGui::InvisibleButton("##tile", tileSize);
@@ -440,7 +458,6 @@ void TilesetGridWidget::renderBrushGrid() {
                 ImGui::AcceptDragDropPayload("TILESET_ENTRY")) {
           size_t sourceIdx = *static_cast<const size_t *>(payload->Data);
           if (sourceIdx != fe.originalIndex && tilesetRegistry_) {
-            // Perform move
             if (auto *ts = tilesetRegistry_->getTileset(tilesetName_)) {
               ts->moveEntry(sourceIdx, fe.originalIndex);
               filterDirty_ = true;
@@ -453,65 +470,23 @@ void TilesetGridWidget::renderBrushGrid() {
         ImGui::EndDragDropTarget();
       }
 
-      ImDrawList *dl = ImGui::GetWindowDrawList();
-
-      // Background
-      ImU32 bgColor = IM_COL32(40, 40, 40, 255);
-      if (isSelected) {
-        bgColor = IM_COL32(60, 100, 160, 255);
-      } else if (isHovered) {
-        bgColor = IM_COL32(80, 80, 80, 255);
-      }
-      dl->AddRectFilled(
-          cursorPos, ImVec2(cursorPos.x + tileSize.x, cursorPos.y + tileSize.y),
-          bgColor);
-
-      // Sprite
-      if (textureId) {
-        dl->AddImage(
-            textureId, cursorPos,
-            ImVec2(cursorPos.x + tileSize.x, cursorPos.y + tileSize.y));
-      }
-
-      // Selection border (with optional pulse animation)
-      if (isSelected) {
-        bool isPulsing =
-            !pulseBrushName_.empty() && brush->getName() == pulseBrushName_;
-
-        if (isPulsing) {
-          float currentTime = ImGui::GetTime();
-          if (pulseStartTime_ < 0) {
-            pulseStartTime_ = currentTime;
-          }
-
-          float elapsed = currentTime - pulseStartTime_;
-          if (elapsed < PULSE_DURATION) {
-            // Pulsing green border
-            float pulse = 0.5f + 0.5f * std::sin(elapsed * 8.0f);
-            ImU32 pulseColor = IM_COL32(static_cast<int>(50 * (1 - pulse)),
-                                        static_cast<int>(220 * pulse + 35),
-                                        static_cast<int>(80 * pulse), 255);
-            float thickness = 2.0f + pulse * 2.0f;
-            dl->AddRect(
-                cursorPos,
-                ImVec2(cursorPos.x + tileSize.x, cursorPos.y + tileSize.y),
-                pulseColor, 0, 0, thickness);
-          } else {
-            // Pulse ended - clear state and show normal border
-            pulseBrushName_.clear();
-            pulseStartTime_ = -1.0f;
-            dl->AddRect(
-                cursorPos,
-                ImVec2(cursorPos.x + tileSize.x, cursorPos.y + tileSize.y),
-                IM_COL32(100, 180, 255, 255), 0, 0, 2.0f);
-          }
-        } else {
-          dl->AddRect(
-              cursorPos,
-              ImVec2(cursorPos.x + tileSize.x, cursorPos.y + tileSize.y),
-              IM_COL32(100, 180, 255, 255), 0, 0, 2.0f);
+      // Render card with pulse animation support
+      bool isPulsing = isSelected && !pulseBrushName_.empty() &&
+                       brush->getName() == pulseBrushName_;
+      float pulseElapsed = 0.0f;
+      if (isPulsing) {
+        float currentTime = ImGui::GetTime();
+        if (pulseStartTime_ < 0)
+          pulseStartTime_ = currentTime;
+        pulseElapsed = currentTime - pulseStartTime_;
+        if (pulseElapsed >= PULSE_DURATION) {
+          pulseBrushName_.clear();
+          pulseStartTime_ = -1.0f;
+          isPulsing = false;
         }
       }
+      renderBrushCard(cursorPos, tileSize, tex, isSelected, isHovered,
+                      isPulsing, pulseElapsed);
 
       // Tooltip
       if (isHovered) {
